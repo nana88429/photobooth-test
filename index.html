@@ -89,7 +89,7 @@
         /* 右側四格預覽區 */
         .result-box { display: flex; flex-direction: column; align-items: center; }
 
-        /* 📸 人生四格大外框 (HTML/CSS 完美版) */
+        /* 📸 人生四格大外框 */
         .photo-strip {
             position: relative;
             width: 300px;
@@ -100,7 +100,7 @@
             overflow: hidden;
         }
 
-        /* 完美對齊、絕不走位的格子 */
+        /* 完美對齊格子位置 */
         .photo-slot {
             position: absolute;
             width: 74.67%;   
@@ -117,7 +117,7 @@
 
         .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* ✨ 儲存專用：100% 秒彈出全螢幕遮罩 */
+        /* ✨ 儲存專用：彈出全螢幕遮罩 */
         .download-modal {
             display: none;
             position: fixed;
@@ -156,7 +156,7 @@
         <div class="camera-box">
             <div class="video-container">
                 <video id="webcam" autoplay playsinline></video>
-                <div id="countdown" class="countdown-overlay">3</div>
+                <div id="countdown" class="countdown-overlay">1</div>
             </div>
 
             <div class="control-panel">
@@ -182,11 +182,11 @@
                 🎉 四格相片已完美生成！<br>📸 請直接【螢幕截圖】保存最完美的畫面！
             </p>
             
-            <div class="photo-strip" id="modal-strip" style="transform: scale(0.85); margin: -60px 0;">
-                <div class="photo-slot" id="m-slot-0"></div>
-                <div class="photo-slot" id="m-slot-1"></div>
-                <div class="photo-slot" id="m-slot-2"></div>
-                <div class="photo-slot" id="m-slot-3"></div>
+            <div class="photo-strip" id="modal-strip" style="transform: scale(0.82); margin: -75px 0;">
+                <div class="photo-slot" id="modal-slot-0" style="top: 16.95%;"></div>
+                <div class="photo-slot" id="modal-slot-1" style="top: 35.33%;"></div>
+                <div class="photo-slot" id="modal-slot-2" style="top: 53.71%;"></div>
+                <div class="photo-slot" id="modal-slot-3" style="top: 72.10%;"></div>
             </div>
 
             <button class="close-modal-btn" onclick="closeModal()">返回修改</button>
@@ -225,20 +225,23 @@
             downloadBtn.style.display = 'none';
             capturedDataUrls = [];
 
+            // 清空所有格子
             for (let s = 0; s < 4; s++) {
                 document.getElementById(`slot-${s}`).innerHTML = '';
-                document.getElementById(`m-slot-${s}`).innerHTML = '';
+                document.getElementById(`modal-slot-${s}`).innerHTML = '';
             }
 
+            // ⚡【已修改】：改為 1 秒極速倒數，拍完一張只要等 1 秒！
             for (let i = 0; i < 4; i++) {
-                for (let count = 3; count > 0; count--) {
+                for (let count = 1; count > 0; count--) {
                     countdownEl.innerText = count;
                     countdownEl.style.display = 'block';
                     await new Promise(res => setTimeout(res, 1000));
                 }
                 countdownEl.style.display = 'none';
                 snapAndFill(i);
-                await new Promise(res => setTimeout(res, 1500));
+                // 拍完後稍微停頓一下下再拍下一張
+                await new Promise(res => setTimeout(res, 1000));
             }
             captureBtn.disabled = false;
             downloadBtn.style.display = 'block';
@@ -261,17 +264,22 @@
             const imgEl = document.createElement('img');
             imgEl.src = dataUrl;
             document.getElementById(`slot-${index}`).appendChild(imgEl);
-
-            // 同步塞入彈出層的預覽
-            const imgElModal = document.createElement('img');
-            imgElModal.src = dataUrl;
-            document.getElementById(`m-slot-${index}`).appendChild(imgElModal);
         }
 
-        // 🚀【極速破局點擊】：完全不走 Canvas 導出，100% 點擊秒彈出，靠純 HTML/CSS 鎖定完美邊框！
+        // 🚀 點擊生成
         downloadBtn.addEventListener('click', () => {
             if (capturedDataUrls.length < 4) return;
-            // 毫秒級彈出，絕對不再有任何死鎖、沒反應的問題！
+            
+            // 將 4 張照片同步塞入黑底視窗的框線內
+            capturedDataUrls.forEach((dataUrl, idx) => {
+                const modalSlot = document.getElementById(`modal-slot-${idx}`);
+                modalSlot.innerHTML = ''; 
+                const imgModal = document.createElement('img');
+                imgModal.src = dataUrl;
+                modalSlot.appendChild(imgModal);
+            });
+
+            // 完美的秒彈出！
             downloadModal.style.display = 'flex';
         });
     </script>
