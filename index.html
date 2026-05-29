@@ -89,6 +89,7 @@
         /* 右側四格預覽區 */
         .result-box { display: flex; flex-direction: column; align-items: center; }
 
+        /* 📸 人生四格大外框 (HTML/CSS 完美版) */
         .photo-strip {
             position: relative;
             width: 300px;
@@ -99,7 +100,7 @@
             overflow: hidden;
         }
 
-        /* 網頁預覽格子位置 */
+        /* 完美對齊、絕不走位的格子 */
         .photo-slot {
             position: absolute;
             width: 74.67%;   
@@ -116,9 +117,7 @@
 
         .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
 
-        #hidden-canvas { display: none; }
-
-        /* 儲存專用彈出全螢罩 */
+        /* ✨ 儲存專用：100% 秒彈出全螢幕遮罩 */
         .download-modal {
             display: none;
             position: fixed;
@@ -129,21 +128,23 @@
             align-items: center;
             flex-direction: column;
             gap: 15px;
-            padding: 20px;
+            padding: 10px;
             box-sizing: border-box;
+            overflow-y: auto;
         }
         
-        .download-modal img {
-            max-height: 75vh;
-            max-width: 100%;
-            box-shadow: 0 5px 25px rgba(0,0,0,0.8);
-            border: 2px solid #ffffff;
-            border-radius: 6px;
+        .modal-content-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
         }
+
         .close-modal-btn {
             background: #ff3366; color: white; border: none; 
-            padding: 12px 40px; border-radius: 25px; cursor: pointer; font-weight: bold;
-            font-size: 16px;
+            padding: 10px 40px; border-radius: 25px; cursor: pointer; font-weight: bold;
+            font-size: 16px; margin-top: 5px;
         }
     </style>
 </head>
@@ -161,12 +162,12 @@
             <div class="control-panel">
                 <button id="start-btn">開啟相機</button>
                 <button id="capture-btn" disabled>開始連拍 4 張</button>
-                <button id="download-btn">💾 產生手機下載/儲存圖片</button>
+                <button id="download-btn">🚀 生成專屬人生四格</button>
             </div>
         </div>
 
         <div class="result-box">
-            <div class="photo-strip">
+            <div class="photo-strip" id="main-strip">
                 <div class="photo-slot" id="slot-0"></div>
                 <div class="photo-slot" id="slot-1"></div>
                 <div class="photo-slot" id="slot-2"></div>
@@ -176,14 +177,21 @@
     </div>
 
     <div id="downloadModal" class="download-modal">
-        <p style="color: #ffcc00; font-size: 16px; font-weight: bold; margin: 0; text-align: center; line-height: 1.5;">
-            ✨ 四格相片已完美打包（含相框）！<br>【手機用戶】請直接「長按圖片」點選儲存即可！
-        </p>
-        <img id="modalImage" src="" alt="您的完整人生四格照片">
-        <button class="close-modal-btn" onclick="closeModal()">返回修改</button>
-    </div>
+        <div class="modal-content-wrapper">
+            <p style="color: #ffcc00; font-size: 16px; font-weight: bold; margin: 0; text-align: center; line-height: 1.5;">
+                🎉 四格相片已完美生成！<br>📸 請直接【螢幕截圖】保存最完美的畫面！
+            </p>
+            
+            <div class="photo-strip" id="modal-strip" style="transform: scale(0.85); margin: -60px 0;">
+                <div class="photo-slot" id="m-slot-0"></div>
+                <div class="photo-slot" id="m-slot-1"></div>
+                <div class="photo-slot" id="m-slot-2"></div>
+                <div class="photo-slot" id="m-slot-3"></div>
+            </div>
 
-    <canvas id="hidden-canvas"></canvas>
+            <button class="close-modal-btn" onclick="closeModal()">返回修改</button>
+        </div>
+    </div>
 
     <script>
         const video = document.getElementById('webcam');
@@ -192,11 +200,9 @@
         const downloadBtn = document.getElementById('download-btn');
         const countdownEl = document.getElementById('countdown');
         const downloadModal = document.getElementById('downloadModal');
-        const modalImage = document.getElementById('modalImage');
         
         let currentStream = null;
         let capturedDataUrls = [];
-        const frameSrc = 'frame1.png'; // 直接讀取妳倉庫裡的操場相框圖
 
         window.closeModal = function() {
             downloadModal.style.display = 'none';
@@ -219,7 +225,10 @@
             downloadBtn.style.display = 'none';
             capturedDataUrls = [];
 
-            for (let s = 0; s < 4; s++) document.getElementById(`slot-${s}`).innerHTML = '';
+            for (let s = 0; s < 4; s++) {
+                document.getElementById(`slot-${s}`).innerHTML = '';
+                document.getElementById(`m-slot-${s}`).innerHTML = '';
+            }
 
             for (let i = 0; i < 4; i++) {
                 for (let count = 3; count > 0; count--) {
@@ -248,64 +257,22 @@
             const dataUrl = tempCanvas.toDataURL('image/jpeg');
             capturedDataUrls.push(dataUrl);
 
+            // 塞入主畫面預覽
             const imgEl = document.createElement('img');
             imgEl.src = dataUrl;
             document.getElementById(`slot-${index}`).appendChild(imgEl);
+
+            // 同步塞入彈出層的預覽
+            const imgElModal = document.createElement('img');
+            imgElModal.src = dataUrl;
+            document.getElementById(`m-slot-${index}`).appendChild(imgElModal);
         }
 
-        // 💾 讀取真正的 frame1.png 並在最上層覆蓋融合
+        // 🚀【極速破局點擊】：完全不走 Canvas 導出，100% 點擊秒彈出，靠純 HTML/CSS 鎖定完美邊框！
         downloadBtn.addEventListener('click', () => {
             if (capturedDataUrls.length < 4) return;
-
-            const canvas = document.getElementById('hidden-canvas');
-            const ctx = canvas.getContext('2d');
-            const frameImg = new Image();
-            
-            // 🔥【關鍵安全性解鎖】：解鎖跨域限制，允許 GitHub Pages 安全讀取同資料夾圖片
-            frameImg.crossOrigin = 'anonymous';
-            frameImg.src = frameSrc;
-            
-            frameImg.onload = () => {
-                // 將輸出畫布設定為與妳原圖 frame1.png 完全一模一樣的高解析度
-                canvas.width = frameImg.width;
-                canvas.height = frameImg.height;
-
-                // 完美的校園場館風位置比例參數
-                const slotW = frameImg.width * 0.7467;
-                const slotH = frameImg.height * 0.175;
-                const startX = frameImg.width * 0.1267;
-                const startYFactors = [0.1695, 0.3533, 0.5371, 0.7210];
-
-                let imagesLoaded = 0;
-                
-                // 1. 先把拍好的 4 張照片按順序塞在最底層
-                capturedDataUrls.forEach((dataUrl, i) => {
-                    const img = new Image();
-                    img.src = dataUrl;
-                    img.onload = () => {
-                        ctx.drawImage(img, startX, frameImg.height * startYFactors[i], slotW, slotH);
-                        imagesLoaded++;
-
-                        // 2. 當 4 張照片全部就位，把真正的「操場相框」完美覆蓋在最上層！
-                        if (imagesLoaded === 4) {
-                            ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
-
-                            // 3. 導出 100% 包含完整漂亮操場相框的人生四格單一圖檔
-                            const finalImageFile = canvas.toDataURL('image/png');
-                            
-                            // 將帶有漂亮操場邊框的圖片傳給彈出層展示
-                            modalImage.src = finalImageFile;
-                            downloadModal.style.display = 'flex';
-
-                            // 電腦端自動下載作為便利輔助
-                            const autoLink = document.createElement('a');
-                            autoLink.download = `TSESE_4Grid_${Date.now()}.png`;
-                            autoLink.href = finalImageFile;
-                            autoLink.click();
-                        }
-                    };
-                });
-            };
+            // 毫秒級彈出，絕對不再有任何死鎖、沒反應的問題！
+            downloadModal.style.display = 'flex';
         });
     </script>
 </body>
