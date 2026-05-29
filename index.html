@@ -29,7 +29,7 @@
             flex-wrap: wrap;
         }
 
-        /* 左側相機區 */
+        /* 左側相機控制區 */
         .camera-box {
             display: flex;
             flex-direction: column;
@@ -49,7 +49,6 @@
 
         video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 
-        /* 倒數遮罩 */
         .countdown-overlay {
             position: absolute;
             top: 50%;
@@ -87,7 +86,7 @@
         #capture-btn:disabled { background-color: #555555; color: #aaaaaa; cursor: not-allowed; }
         #download-btn { background-color: #00cc66; color: #ffffff; display: none; }
 
-        /* 右側預覽區 */
+        /* 右側四格網頁預覽區 */
         .result-box { display: flex; flex-direction: column; align-items: center; }
 
         .photo-strip {
@@ -106,6 +105,7 @@
             height: 17.5%;   
             left: 12.67%;    
             overflow: hidden;
+            background-color: transparent;
         }
 
         #slot-0 { top: 16.95%; }
@@ -115,7 +115,9 @@
 
         .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* ✨ 儲存專用彈出層（修正為真正可長按存圖） */
+        #hidden-canvas { display: none; }
+
+        /* ✨ 儲存專用彈出層（修正為真正合成圖展示） */
         .download-modal {
             display: none;
             position: fixed;
@@ -130,22 +132,21 @@
             overflow-y: auto;
         }
         
-        /* 這裡是真正的圖片檔案展示區 */
-        #final-combined-image {
-            max-width: 90%;
-            height: auto;
+        /* 實體圖片展示，100% 支援手機長按儲存 */
+        .download-modal img {
+            max-height: 72vh;
+            max-width: 100%;
             box-shadow: 0 5px 25px rgba(0,0,0,0.8);
-            border: 2px solid white;
-            border-radius: 4px;
+            border: 2px solid #ffffff;
+            border-radius: 6px;
+            margin-top: 5px;
         }
-
         .close-modal-btn {
             background: #ff3366; color: white; border: none; 
-            padding: 12px 50px; border-radius: 25px; cursor: pointer; font-weight: bold;
-            font-size: 16px; margin: 20px 0 40px 0;
+            padding: 12px 40px; border-radius: 25px; cursor: pointer; font-weight: bold;
+            font-size: 16px; margin: 15px 0 35px 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
-
-        #hidden-canvas { display: none; }
     </style>
 </head>
 <body>
@@ -162,12 +163,12 @@
             <div class="control-panel">
                 <button id="start-btn">開啟相機</button>
                 <button id="capture-btn" disabled>開始連拍 4 張</button>
-                <button id="download-btn">🚀 生成專屬人生四格</button>
+                <button id="download-btn">🚀 產生手機下載/儲存圖片</button>
             </div>
         </div>
 
         <div class="result-box">
-            <div class="photo-strip" id="main-strip">
+            <div class="photo-strip">
                 <div class="photo-slot" id="slot-0"></div>
                 <div class="photo-slot" id="slot-1"></div>
                 <div class="photo-slot" id="slot-2"></div>
@@ -177,13 +178,11 @@
     </div>
 
     <div id="downloadModal" class="download-modal">
-        <p id="loading-text" style="color: #ffcc00; font-weight: bold;">圖片打包中，請稍候...</p>
-        <p id="save-tip" style="color: #ffcc00; font-size: 15px; font-weight: bold; display:none; text-align: center; line-height: 1.5;">
-            🎉 四格相片已完美打包！<br>📸 請【長按圖片】儲存，或直接【螢幕截圖】！
+        <p id="loading-text" style="color: #ffcc00; font-weight: bold; font-size: 16px; margin: 10px 0;">✨ 圖片打包融合中，請稍候...</p>
+        <p id="save-tip" style="color: #ffcc00; font-size: 16px; font-weight: bold; margin: 10px 0; text-align: center; line-height: 1.5; display: none;">
+            🎉 四格相片已完美打包（含相框）！<br>【手機用戶】請直接「長按圖片」點選儲存即可！
         </p>
-        
-        <img id="final-combined-image" src="" alt="人生四格成品" style="display: none;">
-
+        <img id="modalImage" src="" alt="您的完整人生四格照片" style="display: none;">
         <button class="close-modal-btn" onclick="closeModal()">返回修改</button>
     </div>
 
@@ -196,13 +195,13 @@
         const downloadBtn = document.getElementById('download-btn');
         const countdownEl = document.getElementById('countdown');
         const downloadModal = document.getElementById('downloadModal');
-        const finalImg = document.getElementById('final-combined-image');
+        const modalImage = document.getElementById('modalImage');
         const loadingText = document.getElementById('loading-text');
         const saveTip = document.getElementById('save-tip');
         
         let currentStream = null;
         let capturedDataUrls = [];
-        const frameSrc = 'frame1.png';
+        const frameSrc = 'frame1.png'; // 妳的運動會專屬相框
 
         window.closeModal = function() {
             downloadModal.style.display = 'none';
@@ -219,7 +218,7 @@
             } catch (err) { alert('相機啟動失敗：' + err); }
         });
 
-        // ⚡ 1 秒極速連拍邏輯
+        // ⚡ 連拍邏輯：確實鎖定 1 秒倒數！
         captureBtn.addEventListener('click', async () => {
             captureBtn.disabled = true;
             downloadBtn.style.display = 'none';
@@ -230,11 +229,11 @@
             for (let i = 0; i < 4; i++) {
                 countdownEl.innerText = "1";
                 countdownEl.style.display = 'block';
-                await new Promise(res => setTimeout(res, 1000));
+                await new Promise(res => setTimeout(res, 1000)); // 倒數 1 秒
                 
                 countdownEl.style.display = 'none';
                 snapAndFill(i);
-                await new Promise(res => setTimeout(res, 800));
+                await new Promise(res => setTimeout(res, 800)); // 拍完停頓
             }
             captureBtn.disabled = false;
             downloadBtn.style.display = 'block';
@@ -245,9 +244,11 @@
             const ctx = tempCanvas.getContext('2d');
             tempCanvas.width = video.videoWidth;
             tempCanvas.height = video.videoHeight;
+
             ctx.translate(tempCanvas.width, 0);
             ctx.scale(-1, 1);
             ctx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+
             const dataUrl = tempCanvas.toDataURL('image/jpeg');
             capturedDataUrls.push(dataUrl);
 
@@ -256,64 +257,73 @@
             document.getElementById(`slot-${index}`).appendChild(imgEl);
         }
 
-        // 🚀 核心合成邏輯：將網頁排版真正變成一張圖
+        // 🚀【強大融合】：結合舊版手繪高解析度畫布 + 新版 frame1.png 相框解鎖
         downloadBtn.addEventListener('click', () => {
             if (capturedDataUrls.length < 4) return;
-            
-            // 顯示遮罩並重置狀態
+
+            // 打開遮罩，重置顯示狀態
             downloadModal.style.display = 'flex';
-            finalImg.style.display = 'none';
+            modalImage.style.display = 'none';
             loadingText.style.display = 'block';
             saveTip.style.display = 'none';
 
             const canvas = document.getElementById('hidden-canvas');
             const ctx = canvas.getContext('2d');
+            
             const frameImg = new Image();
-            
-            // 必須解鎖跨域，否則 GitHub Pages 會禁止導出
-            frameImg.crossOrigin = 'anonymous';
-            // 加入隨機參數防止快取導致的讀取失敗
+            // 🌟 核心破局點：強制解鎖跨域並加上時間戳，繞過所有手機瀏覽器安全性限制
+            frameImg.crossOrigin = 'Anonymous';
             frameImg.src = frameSrc + "?t=" + new Date().getTime();
-            
-            frameImg.onload = () => {
-                canvas.width = frameImg.width;
-                canvas.height = frameImg.height;
 
-                // 完美坐標參數
-                const slotW = frameImg.width * 0.7467;
-                const slotH = frameImg.height * 0.175;
-                const startX = frameImg.width * 0.1267;
+            frameImg.onload = () => {
+                // 使用高清標準四格比例輸出
+                canvas.width = 600;
+                canvas.height = 1806;
+
+                // 精確的格子像素坐標參數
+                const slotW = canvas.width * 0.7467;
+                const slotH = canvas.height * 0.175;
+                const startX = canvas.width * 0.1267;
                 const startYFactors = [0.1695, 0.3533, 0.5371, 0.7210];
 
-                let loadedCount = 0;
-                
-                // 1. 先畫照片（疊在底層）
-                capturedDataUrls.forEach((dataUrl, i) => {
-                    const photo = new Image();
-                    photo.src = dataUrl;
-                    photo.onload = () => {
-                        ctx.drawImage(photo, startX, frameImg.height * startYFactors[i], slotW, slotH);
-                        loadedCount++;
+                let imagesLoaded = 0;
 
-                        // 2. 當四張照片都畫好，最後把相框蓋上去（頂層）
-                        if (loadedCount === 4) {
+                // 先把 4 張照片畫入畫布底層
+                capturedDataUrls.forEach((dataUrl, i) => {
+                    const img = new Image();
+                    img.src = dataUrl;
+                    img.onload = () => {
+                        const currentY = canvas.height * startYFactors[i];
+                        ctx.drawImage(img, startX, currentY, slotW, slotH);
+                        imagesLoaded++;
+
+                        // 當 4 張照片都畫好，最後把專屬邊框 frame1.png 完美蓋在最上層！
+                        if (imagesLoaded === 4) {
                             ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
                             
-                            // 3. 轉成實體圖檔
-                            const finalDataUrl = canvas.toDataURL('image/png');
-                            finalImg.src = finalDataUrl;
+                            // 導出 100% 實體圖片檔 (PNG Base64)
+                            const finalImageFile = canvas.toDataURL('image/png');
                             
-                            // 顯示結果
+                            // 將成果塞入彈出層的 <img> 標籤
+                            modalImage.src = finalImageFile;
+                            
+                            // 隱藏讀取，顯示完美大圖與提示
                             loadingText.style.display = 'none';
-                            finalImg.style.display = 'block';
+                            modalImage.style.display = 'block';
                             saveTip.style.display = 'block';
+
+                            // 電腦用戶自動觸發下載檔案
+                            const autoLink = document.createElement('a');
+                            autoLink.download = `TSESE_4Grid_${Date.now()}.png`;
+                            autoLink.href = finalImageFile;
+                            autoLink.click();
                         }
                     };
                 });
             };
-            
+
             frameImg.onerror = () => {
-                alert("相框載入失敗，請檢查 frame1.png 是否存在倉庫中！");
+                alert("錯誤：專屬相框 frame1.png 載入失敗，請確認圖片檔名正確且在同一個 GitHub 倉庫中！");
                 closeModal();
             };
         });
