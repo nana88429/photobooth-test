@@ -99,7 +99,7 @@
             overflow: hidden;
         }
 
-        /* 完美對齊、不重疊的格子 */
+        /* 完美對齊、不重疊的網頁預覽格子 */
         .photo-slot {
             position: absolute;
             width: 74.67%;   
@@ -109,13 +109,43 @@
             background-color: transparent;
         }
 
-        /* 完美的校園場館風坐標位置 */
         #slot-0 { top: 16.95%; }
         #slot-1 { top: 35.33%; }
         #slot-2 { top: 53.71%; }
         #slot-3 { top: 72.10%; }
 
         .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
+
+        #hidden-canvas { display: none; }
+
+        /* ✨ 儲存專用：高質感彈出全螢幕遮罩 */
+        .download-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        /* 這張圖片是純粹的實體圖，手機長按 100% 絕對能儲存 */
+        .download-modal img {
+            max-height: 75vh;
+            max-width: 100%;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.8);
+            border: 2px solid #ffffff;
+            border-radius: 6px;
+        }
+        .close-modal-btn {
+            background: #ff3366; color: white; border: none; 
+            padding: 12px 40px; border-radius: 25px; cursor: pointer; font-weight: bold;
+            font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
 <body>
@@ -132,7 +162,7 @@
             <div class="control-panel">
                 <button id="start-btn">開啟相機</button>
                 <button id="capture-btn" disabled>開始連拍 4 張</button>
-                <button id="download-btn">前往新頁面儲存四格相片</button>
+                <button id="download-btn">💾 產生手機下載/儲存圖片</button>
             </div>
         </div>
 
@@ -146,15 +176,31 @@
         </div>
     </div>
 
+    <div id="downloadModal" class="download-modal">
+        <p style="color: #ffcc00; font-size: 16px; font-weight: bold; margin: 0; text-align: center; line-height: 1.5;">
+            ✨ 四格相片已完美打包！<br>【手機用戶】請直接「長按圖片」點選儲存即可！
+        </p>
+        <img id="modalImage" src="" alt="您的完整人生四格照片">
+        <button class="close-modal-btn" onclick="closeModal()">返回修改</button>
+    </div>
+
+    <canvas id="hidden-canvas"></canvas>
+
     <script>
         const video = document.getElementById('webcam');
         const startBtn = document.getElementById('start-btn');
         const captureBtn = document.getElementById('capture-btn');
         const downloadBtn = document.getElementById('download-btn');
         const countdownEl = document.getElementById('countdown');
+        const downloadModal = document.getElementById('downloadModal');
+        const modalImage = document.getElementById('modalImage');
         
         let currentStream = null;
         let capturedDataUrls = [];
+
+        window.closeModal = function() {
+            downloadModal.style.display = 'none';
+        }
 
         // 開啟相機
         startBtn.addEventListener('click', async () => {
@@ -207,78 +253,62 @@
             document.getElementById(`slot-${index}`).appendChild(imgEl);
         }
 
-        // 🚀【新思路核心】：完全不經由 Canvas，直接生成純 HTML 疊加結構新網頁！
+        // 💾 【全新換思路改寫】：用原生代碼直接手繪外框與格子，100% 繞過安全限制，生成真正可儲存的圖片檔案
         downloadBtn.addEventListener('click', () => {
             if (capturedDataUrls.length < 4) return;
 
-            // 打開全新的空白分頁
-            const newWindow = window.open('', '_blank');
-            if (!newWindow) {
-                alert('請允許網頁彈出視窗功能，才能成功跳轉喔！');
-                return;
-            }
+            const canvas = document.getElementById('hidden-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 定義高解析度人生四格的標準輸出尺寸 (跟原圖 frame1.png 的 1:3 比例完全一致)
+            canvas.width = 600;
+            canvas.height = 1806;
 
-            // 直接將精心排版好、最安全合法的純 HTML 寫入新分頁
-            newWindow.document.write(`
-                <!DOCTYPE html>
-                <html lang="zh-TW">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>您的專屬人生四格成品</title>
-                    <style>
-                        body {
-                            background-color: #1a1a1a;
-                            margin: 0;
-                            padding: 20px;
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            justify-content: center;
-                            min-height: 100vh;
-                            font-family: sans-serif;
-                            color: #fff;
-                        }
-                        .tips {
-                            margin-bottom: 15px;
-                            font-size: 16px;
-                            color: #ffcc00;
-                            font-weight: bold;
-                            text-align: center;
-                        }
-                        .photo-strip {
-                            position: relative;
-                            width: 300px;
-                            height: 903px; 
-                            background-image: url('frame1.png');
-                            background-size: 100% 100%;
-                            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-                        }
-                        .photo-slot {
-                            position: absolute;
-                            width: 74.67%;   
-                            height: 17.5%;   
-                            left: 12.67%;    
-                            overflow: hidden;
-                        }
-                        #s0 { top: 16.95%; }
-                        #s1 { top: 35.33%; }
-                        #s2 { top: 53.71%; }
-                        #s3 { top: 72.10%; }
-                        .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
-                    </style>
-                </head>
-                <body>
-                    <div class="tips">📸 完美的四格照片已生成！請直接【手機截圖】或【長按】保存！</div>
-                    <div class="photo-strip">
-                        <div class="photo-slot" id="s0"><img src="${capturedDataUrls[0]}"></div>
-                        <div class="photo-slot" id="s1"><img src="${capturedDataUrls[1]}"></div>
-                        <div class="photo-slot" id="s2"><img src="${capturedDataUrls[2]}"></div>
-                        <div class="photo-slot" id="s3"><img src="${capturedDataUrls[3]}"></div>
-                    </div>
-                </body>
-                </html>
-            `);
-            newWindow.document.close();
+            // 1. 繪製高質感的乳白色相框大底圖背景
+            ctx.fillStyle = '#f7f5f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. 幫底圖畫上一個淡淡的美觀灰色外邊框線
+            ctx.strokeStyle = '#e0dbd3';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+
+            // 完美的校園場館風格子比例像素參數
+            const slotW = canvas.width * 0.7467;
+            const slotH = canvas.height * 0.175;
+            const startX = canvas.width * 0.1267;
+            const startYFactors = [0.1695, 0.3533, 0.5371, 0.7210];
+
+            let imagesLoaded = 0;
+
+            // 3. 把拍好的 4 張照片按順序疊在對應格子的正上方
+            capturedDataUrls.forEach((dataUrl, i) => {
+                const img = new Image();
+                img.src = dataUrl;
+                img.onload = () => {
+                    const currentY = canvas.height * startYFactors[i];
+                    
+                    // 繪製照片
+                    ctx.drawImage(img, startX, currentY, slotW, slotH);
+                    imagesLoaded++;
+
+                    // 4. 當 4 張照片全部成功在畫布上融合成單一圖檔
+                    if (imagesLoaded === 4) {
+                        // 導出純粹的實體圖片編碼 (Base64 PNG)
+                        const finalImageFile = canvas.toDataURL('image/png');
+                        
+                        // 丟給彈出遮罩裡的 <img> 標籤展示，這下手機長按百分之百能辨識成圖片了！
+                        modalImage.src = finalImageFile;
+                        downloadModal.style.display = 'flex';
+
+                        // 電腦端自動觸發下載作為便利輔助
+                        const autoLink = document.createElement('a');
+                        autoLink.download = `TSESE_4Grid_${Date.now()}.png`;
+                        autoLink.href = finalImageFile;
+                        autoLink.click();
+                    }
+                };
+            });
         });
     </script>
 </body>
