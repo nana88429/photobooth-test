@@ -86,10 +86,9 @@
         #capture-btn:disabled { background-color: #555555; color: #aaaaaa; cursor: not-allowed; }
         #download-btn { background-color: #00cc66; color: #ffffff; display: none; }
 
-        /* 右側四格預覽區 */
+        /* 右側主畫面預覽區 */
         .result-box { display: flex; flex-direction: column; align-items: center; }
 
-        /* 📸 人生四格大外框 */
         .photo-strip {
             position: relative;
             width: 300px;
@@ -100,7 +99,7 @@
             overflow: hidden;
         }
 
-        /* 完美對齊格子位置 */
+        /* 預覽格子的絕對定位 */
         .photo-slot {
             position: absolute;
             width: 74.67%;   
@@ -117,34 +116,57 @@
 
         .photo-slot img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* ✨ 儲存專用：彈出全螢幕遮罩 */
+        /* 🔥 儲存專用彈出層（重新設計：絕不走位結構） */
         .download-modal {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.95);
             z-index: 9999;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
             flex-direction: column;
-            gap: 15px;
-            padding: 10px;
+            padding: 20px 10px;
             box-sizing: border-box;
-            overflow-y: auto;
+            overflow-y: auto; /* 允許手機上下滑動看完整截圖 */
         }
         
         .modal-content-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 15px;
             width: 100%;
         }
 
+        /* 彈出層專用的外框：直接與主畫面脫離，確保手機縮放不崩潰 */
+        .modal-photo-strip {
+            position: relative;
+            width: 280px;
+            height: 843px; /* 稍微縮小一點點，確保手機畫面能一眼看全 */
+            background-image: url('frame1.png');
+            background-size: 100% 100%;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.8);
+        }
+
+        /* 彈出層專用的四個格子定位（精確鎖定） */
+        .modal-slot {
+            position: absolute;
+            width: 74.67%;
+            height: 17.5%;
+            left: 12.67%;
+            overflow: hidden;
+        }
+        #modal-slot-0 { top: 16.95%; }
+        #modal-slot-1 { top: 35.33%; }
+        #modal-slot-2 { top: 53.71%; }
+        #modal-slot-3 { top: 72.10%; }
+        .modal-slot img { width: 100%; height: 100%; object-fit: cover; }
+
         .close-modal-btn {
             background: #ff3366; color: white; border: none; 
-            padding: 10px 40px; border-radius: 25px; cursor: pointer; font-weight: bold;
-            font-size: 16px; margin-top: 5px;
+            padding: 12px 50px; border-radius: 25px; cursor: pointer; font-weight: bold;
+            font-size: 16px; margin: 15px 0 30px 0;
         }
     </style>
 </head>
@@ -178,15 +200,15 @@
 
     <div id="downloadModal" class="download-modal">
         <div class="modal-content-wrapper">
-            <p style="color: #ffcc00; font-size: 16px; font-weight: bold; margin: 0; text-align: center; line-height: 1.5;">
+            <p style="color: #ffcc00; font-size: 15px; font-weight: bold; margin: 0; text-align: center; line-height: 1.5; padding: 0 10px;">
                 🎉 四格相片已完美生成！<br>📸 請直接【螢幕截圖】保存最完美的畫面！
             </p>
             
-            <div class="photo-strip" id="modal-strip" style="transform: scale(0.82); margin: -75px 0;">
-                <div class="photo-slot" id="modal-slot-0" style="top: 16.95%;"></div>
-                <div class="photo-slot" id="modal-slot-1" style="top: 35.33%;"></div>
-                <div class="photo-slot" id="modal-slot-2" style="top: 53.71%;"></div>
-                <div class="photo-slot" id="modal-slot-3" style="top: 72.10%;"></div>
+            <div class="modal-photo-strip" id="modal-strip">
+                <div class="modal-slot" id="modal-slot-0"></div>
+                <div class="modal-slot" id="modal-slot-1"></div>
+                <div class="modal-slot" id="modal-slot-2"></div>
+                <div class="modal-slot" id="modal-slot-3"></div>
             </div>
 
             <button class="close-modal-btn" onclick="closeModal()">返回修改</button>
@@ -219,29 +241,29 @@
             } catch (err) { alert('相機啟動失敗：' + err); }
         });
 
-        // 連拍邏輯
+        // ⚡ 連拍邏輯：這次確實鎖定 1 秒倒數！
         captureBtn.addEventListener('click', async () => {
             captureBtn.disabled = true;
             downloadBtn.style.display = 'none';
             capturedDataUrls = [];
 
-            // 清空所有格子
+            // 清空主預覽和彈出層的所有格子
             for (let s = 0; s < 4; s++) {
                 document.getElementById(`slot-${s}`).innerHTML = '';
                 document.getElementById(`modal-slot-${s}`).innerHTML = '';
             }
 
-            // ⚡【已修改】：改為 1 秒極速倒數，拍完一張只要等 1 秒！
+            // 確實執行 1 秒倒數
             for (let i = 0; i < 4; i++) {
-                for (let count = 1; count > 0; count--) {
-                    countdownEl.innerText = count;
-                    countdownEl.style.display = 'block';
-                    await new Promise(res => setTimeout(res, 1000));
-                }
+                countdownEl.innerText = "1";
+                countdownEl.style.display = 'block';
+                await new Promise(res => setTimeout(res, 1000)); // 倒數 1 秒
+                
                 countdownEl.style.display = 'none';
                 snapAndFill(i);
-                // 拍完後稍微停頓一下下再拍下一張
-                await new Promise(res => setTimeout(res, 1000));
+                
+                // 每張拍完後的等待間隔也縮短到 0.8 秒，加快整體測試速度
+                await new Promise(res => setTimeout(res, 800));
             }
             captureBtn.disabled = false;
             downloadBtn.style.display = 'block';
@@ -266,20 +288,21 @@
             document.getElementById(`slot-${index}`).appendChild(imgEl);
         }
 
-        // 🚀 點擊生成
+        // 🚀 點擊生成：將 4 張實體照片精確拷貝到彈出層對應的位置
         downloadBtn.addEventListener('click', () => {
             if (capturedDataUrls.length < 4) return;
             
-            // 將 4 張照片同步塞入黑底視窗的框線內
-            capturedDataUrls.forEach((dataUrl, idx) => {
+            // 強制遍歷 1 到 4 張照片，一個蘿蔔一個坑填進去
+            for (let idx = 0; idx < 4; idx++) {
                 const modalSlot = document.getElementById(`modal-slot-${idx}`);
-                modalSlot.innerHTML = ''; 
+                modalSlot.innerHTML = ''; // 確保乾淨
+                
                 const imgModal = document.createElement('img');
-                imgModal.src = dataUrl;
+                imgModal.src = capturedDataUrls[idx];
                 modalSlot.appendChild(imgModal);
-            });
+            }
 
-            // 完美的秒彈出！
+            // 顯示彈出視窗
             downloadModal.style.display = 'flex';
         });
     </script>
