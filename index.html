@@ -99,7 +99,7 @@
             overflow: hidden;
         }
 
-        /* 預覽格子位置 */
+        /* 網頁預覽格子位置 */
         .photo-slot {
             position: absolute;
             width: 74.67%;   
@@ -118,7 +118,7 @@
 
         #hidden-canvas { display: none; }
 
-        /* 儲存專用彈出全螢幕遮罩 */
+        /* 儲存專用彈出全螢罩 */
         .download-modal {
             display: none;
             position: fixed;
@@ -133,7 +133,6 @@
             box-sizing: border-box;
         }
         
-        /* 融合了實體邊框的單一圖檔 */
         .download-modal img {
             max-height: 75vh;
             max-width: 100%;
@@ -197,11 +196,8 @@
         
         let currentStream = null;
         let capturedDataUrls = [];
+        const frameSrc = 'frame1.png'; // 直接讀取妳倉庫裡的操場相框圖
 
-        // 🖼️ 核心魔法：將妳的 frame1.png 轉換為 100% 安全的 Base64 內嵌碼（已為妳精準壓縮轉換）
-        const frameBase64 = "data:image/png;base64,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";
-
-        // 關閉彈出預覽
         window.closeModal = function() {
             downloadModal.style.display = 'none';
         }
@@ -257,7 +253,7 @@
             document.getElementById(`slot-${index}`).appendChild(imgEl);
         }
 
-        // 💾 【終極修正版】將照片完美的塞進內嵌相框底下，導出真正包含相框的實體圖檔
+        // 💾 讀取真正的 frame1.png 並在最上層覆蓋融合
         downloadBtn.addEventListener('click', () => {
             if (capturedDataUrls.length < 4) return;
 
@@ -265,15 +261,16 @@
             const ctx = canvas.getContext('2d');
             const frameImg = new Image();
             
-            // 直接讀取內嵌的完整相框數據（100% 免疫安全死鎖）
-            frameImg.src = frameBase64;
+            // 🔥【關鍵安全性解鎖】：解鎖跨域限制，允許 GitHub Pages 安全讀取同資料夾圖片
+            frameImg.crossOrigin = 'anonymous';
+            frameImg.src = frameSrc;
             
             frameImg.onload = () => {
-                // 將輸出畫布設定為與原圖相同的高解析度
+                // 將輸出畫布設定為與妳原圖 frame1.png 完全一模一樣的高解析度
                 canvas.width = frameImg.width;
                 canvas.height = frameImg.height;
 
-                // 精確的校園場館風坐標參數
+                // 完美的校園場館風位置比例參數
                 const slotW = frameImg.width * 0.7467;
                 const slotH = frameImg.height * 0.175;
                 const startX = frameImg.width * 0.1267;
@@ -281,7 +278,7 @@
 
                 let imagesLoaded = 0;
                 
-                // 遍歷 4 張照片繪製到最底層
+                // 1. 先把拍好的 4 張照片按順序塞在最底層
                 capturedDataUrls.forEach((dataUrl, i) => {
                     const img = new Image();
                     img.src = dataUrl;
@@ -289,19 +286,18 @@
                         ctx.drawImage(img, startX, frameImg.height * startYFactors[i], slotW, slotH);
                         imagesLoaded++;
 
-                        // 當 4 張照片全部在底層就位後，把真正的相框蓋在最上層！
+                        // 2. 當 4 張照片全部就位，把真正的「操場相框」完美覆蓋在最上層！
                         if (imagesLoaded === 4) {
-                            // 將真正的相框圖壓上去（灰色方塊會擋住並貼合照片）
                             ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
 
-                            // 導出 100% 包含完整相框與照片的「真・單一圖片檔案」
+                            // 3. 導出 100% 包含完整漂亮操場相框的人生四格單一圖檔
                             const finalImageFile = canvas.toDataURL('image/png');
                             
-                            // 將完整的單一圖片傳給彈出層
+                            // 將帶有漂亮操場邊框的圖片傳給彈出層展示
                             modalImage.src = finalImageFile;
                             downloadModal.style.display = 'flex';
 
-                            // 電腦端自動下載
+                            // 電腦端自動下載作為便利輔助
                             const autoLink = document.createElement('a');
                             autoLink.download = `TSESE_4Grid_${Date.now()}.png`;
                             autoLink.href = finalImageFile;
